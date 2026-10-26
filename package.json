@@ -1,0 +1,14 @@
+{
+  "name": "quotation-invoice-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=client",
+    "dev": "npm run build --workspace=client && node server/src/server.js",
+    "start": "node server/src/server.js"
+  }
+}

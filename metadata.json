@@ -1,0 +1,8 @@
+{
+  "name": "Quotation & Invoice Management System",
+  "description": "Professional quotation and invoice management system for creating, managing, and tracking clients, quotes, and billing.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
