@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   Wallet,
@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import api from "../api/api";
 import { getInvoices } from "../api/invoiceApi";
+import Pagination from "../components/Pagination";
+
+const PAGE_SIZE = 10;
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-IN", {
@@ -41,6 +44,12 @@ export default function Payments() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [methodFilter, setMethodFilter] = useState("All");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    totalPages: 1,
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -55,32 +64,45 @@ export default function Payments() {
     notes: "",
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [payRes, invRes] = await Promise.allSettled([
-        api.get("/payments"),
-        getInvoices({ limit: 100 }),
-      ]);
+      const response = await api.get("/payments", {
+        params: {
+          page,
+          limit: PAGE_SIZE,
+          ...(search.trim() ? { search: search.trim() } : {}),
+          ...(methodFilter !== "All" ? { paymentMethod: methodFilter } : {}),
+        },
+      });
+      const raw = response?.data?.data ?? response?.data ?? [];
 
-      if (payRes.status === "fulfilled") {
-        const raw = payRes.value?.data?.data ?? payRes.value?.data ?? [];
-        setPayments(raw.payments ?? (Array.isArray(raw) ? raw : []));
-      }
-
-      if (invRes.status === "fulfilled") {
-        const raw = invRes.value?.data?.data ?? invRes.value?.data ?? [];
-        setInvoices(raw.invoices ?? (Array.isArray(raw) ? raw : []));
-      }
+      setPayments(raw.payments ?? (Array.isArray(raw) ? raw : []));
+      setPagination({
+        page: Number(raw.pagination?.page) || page,
+        total: Number(raw.pagination?.total) || 0,
+        totalPages: Math.max(1, Number(raw.pagination?.totalPages) || 1),
+      });
     } catch (err) {
       console.error("Error fetching payments:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [methodFilter, page, search]);
 
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    getInvoices({ limit: 100 })
+      .then((response) => {
+        const raw = response?.data?.data ?? response?.data ?? [];
+        setInvoices(raw.invoices ?? (Array.isArray(raw) ? raw : []));
+      })
+      .catch((err) => {
+        console.error("Error fetching invoices:", err);
+      });
   }, []);
 
   const totalCollected = payments.reduce(
@@ -113,6 +135,7 @@ export default function Payments() {
       });
 
       setSuccessMsg("Payment recorded successfully!");
+      setPage(1);
       setModalOpen(false);
       setPaymentForm({
         invoiceId: "",
@@ -132,20 +155,6 @@ export default function Payments() {
       setSubmitting(false);
     }
   };
-
-  // Filtered payments
-  const filteredPayments = payments.filter((p) => {
-    const invNum =
-      p.invoice?.invoiceNumber || p.invoiceNumber || p.reference || "";
-    const matchesSearch =
-      invNum.toLowerCase().includes(search.toLowerCase()) ||
-      String(p.paymentMethod || "")
-        .toLowerCase()
-        .includes(search.toLowerCase());
-    const matchesMethod =
-      methodFilter === "All" || p.paymentMethod === methodFilter;
-    return matchesSearch && matchesMethod;
-  });
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -184,7 +193,7 @@ export default function Payments() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs">
           <p className="text-xs font-medium text-text-secondary">
-            Total Payments Logged
+            Payments on this page
           </p>
           <p className="mt-2 text-2xl font-black text-emerald-600">
             {formatCurrency(totalCollected)}
@@ -227,7 +236,10 @@ export default function Payments() {
             type="text"
             placeholder="Search by invoice number, reference, or method..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="w-full bg-transparent outline-none placeholder:text-text-secondary"
           />
         </div>
@@ -238,7 +250,10 @@ export default function Payments() {
           </label>
           <select
             value={methodFilter}
-            onChange={(e) => setMethodFilter(e.target.value)}
+            onChange={(e) => {
+              setMethodFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-text-primary focus:outline-none"
           >
             <option value="All">All Methods</option>
@@ -254,7 +269,7 @@ export default function Payments() {
       {/* Payments Table */}
       <div className="rounded-2xl border border-border bg-surface shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          {filteredPayments.length === 0 ? (
+          {payments.length === 0 ? (
             <div className="py-16 text-center text-xs text-text-secondary">
               No payment transactions found. Click "Record Payment" to log one.
             </div>
@@ -271,7 +286,7 @@ export default function Payments() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredPayments.map((p) => {
+                {payments.map((p) => {
                   const invNumber =
                     p.invoice?.invoiceNumber ||
                     p.invoiceNumber ||
@@ -321,25 +336,16 @@ export default function Payments() {
           )}
         </div>
 
-        {/* Bottom Right Pagination */}
-        <div className="flex flex-col gap-2 border-t border-border px-5 py-3 sm:flex-row sm:items-center sm:justify-between text-xs text-text-secondary">
-          <span>Showing {filteredPayments.length} payment records</span>
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <button
-              disabled
-              className="rounded-lg border border-border px-2.5 py-1 text-xs opacity-50 cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <span className="font-semibold text-primary">Page 1 of 1</span>
-            <button
-              disabled
-              className="rounded-lg border border-border px-2.5 py-1 text-xs opacity-50 cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={PAGE_SIZE}
+          itemCount={payments.length}
+          itemLabel="payment records"
+          loading={loading}
+          onPageChange={setPage}
+        />
       </div>
 
       {/* Record Payment Modal */}

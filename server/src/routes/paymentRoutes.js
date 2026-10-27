@@ -3,13 +3,19 @@ const authenticate = require("../middleware/authenticate");
 const authorizeRoles = require("../middleware/authorizeRoles");
 const paymentController = require("../controllers/paymentController");
 const paymentService = require("../services/paymentService");
+const validateRequest = require("../validators/validateRequest");
+const { listPaymentsQuerySchema } = require("../validators/paymentValidator");
 
 const router = express.Router();
 
 router.use(authenticate, authorizeRoles("admin"));
 
 // Get all payments with optional filtering and pagination
-router.get("/", paymentController.getPayments);
+router.get(
+  "/",
+  validateRequest(listPaymentsQuerySchema, "query"),
+  paymentController.getPayments
+);
 
 // Direct payment creation endpoint
 router.post("/", async (req, res, next) => {

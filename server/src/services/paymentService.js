@@ -133,11 +133,35 @@ const getInvoicePayments = async (invoiceId, { page = 1, limit = 10 }) => {
   };
 };
 
-const getPayments = async ({ page = 1, limit = 10, invoiceId } = {}) => {
+const getPayments = async ({
+  page = 1,
+  limit = 10,
+  invoiceId,
+  search,
+  paymentMethod,
+} = {}) => {
   const filter = {};
 
   if (invoiceId) {
     filter.invoice = invoiceId;
+  }
+
+  if (paymentMethod) {
+    filter.paymentMethod = paymentMethod;
+  }
+
+  if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const invoiceMatches = await Invoice.find({
+      invoiceNumber: { $regex: escapedSearch, $options: "i" },
+    }).select("_id");
+
+    filter.$or = [
+      { reference: { $regex: escapedSearch, $options: "i" } },
+      { notes: { $regex: escapedSearch, $options: "i" } },
+      { paymentMethod: { $regex: escapedSearch, $options: "i" } },
+      { invoice: { $in: invoiceMatches.map((invoice) => invoice._id) } },
+    ];
   }
 
   const skip = (page - 1) * limit;

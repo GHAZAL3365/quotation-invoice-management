@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Search, Users, RefreshCw, Plus, Pencil, Trash2 } from "lucide-react";
 import { getClients, deleteClient } from "../api/clientApi";
 import ClientFormModal from "../components/ClientFormModal";
+import Pagination from "../components/Pagination";
 
 function extractClients(response) {
   const data = response?.data ?? response;
@@ -20,6 +21,8 @@ export default function Clients() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -39,6 +42,8 @@ export default function Clients() {
       });
 
       setClients(extractClients(response));
+      setTotal(Number(response?.pagination?.total) || 0);
+      setTotalPages(Math.max(1, Number(response?.pagination?.totalPages) || 1));
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -307,37 +312,16 @@ return (
         </table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-text-secondary">
-          {clients.length
-            ? `${clients.length} clients`
-            : "0 clients"}
-        </p>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={page <= 1 || loading}
-            onClick={() => setPage((current) => current - 1)}
-            className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Previous
-          </button>
-
-          <span className="min-w-20 text-center text-sm text-text-secondary">
-            Page {page}
-          </span>
-
-          <button
-            type="button"
-            disabled={clients.length < limit || loading}
-            onClick={() => setPage((current) => current + 1)}
-            className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        pageSize={limit}
+        itemCount={clients.length}
+        itemLabel="clients"
+        loading={loading}
+        onPageChange={setPage}
+      />
     </div>
 
     {(showCreateModal || selectedClient) && (

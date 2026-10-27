@@ -41,6 +41,8 @@ const listPaymentsQuerySchema = z
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
     invoiceId: objectIdSchema.optional(),
+    search: z.string().trim().max(100).default(""),
+    paymentMethod: z.string().trim().max(50).optional(),
   })
   .strict();
 
