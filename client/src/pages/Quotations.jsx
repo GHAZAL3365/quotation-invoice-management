@@ -102,11 +102,14 @@ export default function Quotations() {
     loadQuotations();
   }, [loadQuotations]);
 
-  function handleSearch(event) {
-    event.preventDefault();
-    setPagination((current) => ({ ...current, page: 1 }));
-    setSearch(searchInput.trim());
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPagination((current) => ({ ...current, page: 1 }));
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   async function handleDelete(quotation) {
     const confirmed = window.confirm(
@@ -195,30 +198,21 @@ export default function Quotations() {
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <form
-            onSubmit={handleSearch}
-            className="flex w-full gap-2 lg:max-w-md"
-          >
+          <div className="w-full lg:max-w-md">
             <div className="relative flex-1">
               <Search
                 size={18}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <input
+                type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search quotation number..."
+                placeholder="Search quotation number, client name or email..."
                 className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
               />
             </div>
-
-            <button
-              type="submit"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
-              Search
-            </button>
-          </form>
+          </div>
 
           <div className="flex items-center gap-2">
             <label

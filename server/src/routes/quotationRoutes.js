@@ -26,7 +26,12 @@ router.get(
     quotationController.downloadQuotationPdf
 );
 
-router.get("/", scopeToClient, quotationController.getQuotations);
+router.get(
+  "/",
+  scopeToClient,
+  validateRequest(listQuotationsQuerySchema, "query"),
+  quotationController.getQuotations
+);
 
 router.post(
     "/",

@@ -89,6 +89,8 @@ const getInvoices = async ({
   page = 1,
   limit = 10,
   clientId,
+  status,
+  search,
 }) => {
   const filter = {
     isDeleted: { $ne: true },
@@ -96,6 +98,25 @@ const getInvoices = async ({
 
   if (clientId) {
     filter.clientId = clientId;
+  }
+
+  if (status) {
+    filter.status = status;
+  }
+
+  if (search) {
+    const searchRegex = new RegExp(escapeRegex(search), "i");
+    const matchingClients = await Client.find({
+      $or: [
+        { clientName: searchRegex },
+        { email: searchRegex },
+      ],
+    }).distinct("_id");
+
+    filter.$or = [
+      { invoiceNumber: searchRegex },
+      { clientId: { $in: matchingClients } },
+    ];
   }
 
   const skip = (page - 1) * limit;
@@ -120,6 +141,9 @@ const getInvoices = async ({
     },
   };
 };
+
+const escapeRegex = (value) =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getInvoiceById = async (invoiceId, clientId) => {
     const filter = {

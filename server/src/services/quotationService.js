@@ -116,10 +116,18 @@ async function getQuotations({
   }
 
   if (search) {
-    filter.quotationNumber = {
-      $regex: escapeRegex(search),
-      $options: "i",
-    };
+    const searchRegex = new RegExp(escapeRegex(search), "i");
+    const matchingClients = await Client.find({
+      $or: [
+        { clientName: searchRegex },
+        { email: searchRegex },
+      ],
+    }).distinct("_id");
+
+    filter.$or = [
+      { quotationNumber: searchRegex },
+      { clientId: { $in: matchingClients } },
+    ];
   }
 
   const skip = (page - 1) * limit;

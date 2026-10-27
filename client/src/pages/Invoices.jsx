@@ -311,7 +311,7 @@ export default function Invoices() {
             <input
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search invoice number..."
+              placeholder="Search invoice number, client name or email..."
               className="w-full rounded-lg border border-border bg-surface py-2.5 pl-10 pr-3 text-sm text-text-primary outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
             />
           </div>

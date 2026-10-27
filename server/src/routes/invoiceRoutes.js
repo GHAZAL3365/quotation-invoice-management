@@ -6,7 +6,12 @@ const scopeToClient = require("../middleware/scopeToClient");
 const requireCsrfToken = require("../middleware/requireCsrfToken");
 const{getInvoicePayments,createPayment} = require("../controllers/paymentController");
 const { createPaymentSchema, paymentIdParamsSchema } = require("../validators/paymentValidator");
-const { createInvoiceSchema, updateInvoiceSchema, invoiceIdSchema } = require("../validators/invoiceValidator");
+const {
+  createInvoiceSchema,
+  updateInvoiceSchema,
+  invoiceIdSchema,
+  listInvoicesQuerySchema,
+} = require("../validators/invoiceValidator");
 const {downloadInvoicePdf} = require("../controllers/invoicePdfController");
 
 const {
@@ -20,7 +25,13 @@ const {
 const router = express.Router();
 
 router.post("/", authenticate, authorizeRoles("admin"), validateRequest(createInvoiceSchema), createInvoice);
-router.get("/", authenticate, scopeToClient, getInvoices);
+router.get(
+  "/",
+  authenticate,
+  scopeToClient,
+  validateRequest(listInvoicesQuerySchema, "query"),
+  getInvoices
+);
 router.get("/:id", authenticate, scopeToClient, validateRequest(invoiceIdSchema, "params"), getInvoiceById);
 router.put("/:id", authenticate, authorizeRoles("admin"), validateRequest(invoiceIdSchema, "params"), validateRequest(updateInvoiceSchema), updateInvoice);
 router.delete("/:id", authenticate, authorizeRoles("admin"), validateRequest(invoiceIdSchema, "params"), deleteInvoice);

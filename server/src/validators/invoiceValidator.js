@@ -44,6 +44,10 @@ const listInvoicesQuerySchema = z
             .string()
             .regex(/^[a-f\d]{24}$/i, "Invalid client ID")
             .optional(),
+        status: z
+            .enum(["Draft", "Unpaid", "Partially Paid", "Paid"])
+            .optional(),
+        search: z.string().trim().max(100).optional(),
     })
     .strict();
 
